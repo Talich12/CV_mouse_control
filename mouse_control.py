@@ -17,6 +17,18 @@ class HandDetector():
         self.y_pixel = 0
         self.click = False
 
+    def calculate_hand_size(self, hand_coords):
+        if hand_coords:
+            # Находим координаты ладони и большого пальца
+            wrist_coord = [coord for coord in hand_coords if coord[0] == 'WRIST'][0][1:]
+            thumb_tip_coord = [coord for coord in hand_coords if coord[0] == 'THUMB_TIP'][0][1:]
+
+            # Вычисляем расстояние между ладонью и большим пальцем
+            distance = self.find_distance(wrist_coord, thumb_tip_coord)
+            # Возвращаем расстояние в пикселях
+            return distance
+        return 0
+
     def find_hands(self, img, draw=True):
         results = self.hands.process(img)
         self.left_hand_coords = []
@@ -44,11 +56,14 @@ class HandDetector():
 
     def find_gesture(self, left_hand_coords, right_hand_coords):
         if len(right_hand_coords) > 0:
+            right_size = self.calculate_hand_size(right_hand_coords)
+            right__trashhold = right_size * 0.25
+
             right_thumb_tip = [coord for coord in right_hand_coords if coord[0] == 'THUMB_TIP'][0][1:]
             right_index_finger_tip = [coord for coord in right_hand_coords if coord[0] == 'INDEX_FINGER_TIP'][0][1:]
+
             right_distance = self.find_distance(right_thumb_tip, right_index_finger_tip)
-            #print(f'{right_distance} дистанция')
-            if right_distance <= 0.045:
+            if right_distance <= right__trashhold:
                 x = right_index_finger_tip[0]
                 y = right_index_finger_tip[1]
                 x = 1 - x
@@ -57,11 +72,16 @@ class HandDetector():
                 #print(f'управление мышкой')
                 #print((right_thumb_tip, rightindex_finger_tip))
                 #print(self.find_midpoint(right_thumb_tip, rightindex_finger_tip))
+
         if len(left_hand_coords) > 0:
+            left_size = self.calculate_hand_size(left_hand_coords)
+            left__trashhold = left_size * 0.25
+
             left_thumb_tip = [coord for coord in left_hand_coords if coord[0] == 'THUMB_TIP'][0][1:]
             leftindex_finger_tip = [coord for coord in left_hand_coords if coord[0] == 'INDEX_FINGER_TIP'][0][1:]
+
             left_distance = self.find_distance(left_thumb_tip, leftindex_finger_tip)
-            if left_distance <= 0.045:
+            if left_distance <= left__trashhold:
                 self.click = True
             else:
                 self.click = False
@@ -97,10 +117,10 @@ def mouse_click(hand_detector):
     while True:
         if hand_detector.click:
             pyautogui.mouseDown()
-            print('click')
+            #print('click')
         else:
             pyautogui.mouseUp()
-            print('unclick')
+            #print('unclick')
 
 
 # Захват видео с камеры
