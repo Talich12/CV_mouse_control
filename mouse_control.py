@@ -87,26 +87,34 @@ class HandDetector():
                 self.click = False
             
 def process_frame(hand_detector, cap):
+    frame_counter = 0 # Инициализация счетчика кадров
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
             break
 
-        # Преобразование изображения в RGB
-        image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        image.flags.writeable = False
+        # Проверяем, является ли текущий кадр каждым вторым
+        if frame_counter % 2 == 0: # Если счетчик равен 0, 2, 4, 6 и т.д.
+            # Преобразование изображения в RGB
+            image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            image.flags.writeable = False
 
-        # Рисование результатов на изображении
-        image.flags.writeable = True
-        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+            # Рисование результатов на изображении
+            image.flags.writeable = True
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
-        results = hand_detector.find_hands(image)
-        image = hand_detector.draw_landmarks(image, results)
+            results = hand_detector.find_hands(image)
+            image = hand_detector.draw_landmarks(image, results)
 
-        # Отображение изображения
-        cv2.imshow('MediaPipe Hands', image)
-        if cv2.waitKey(5) & 0xFF == 27:
-            break
+            # Отображение изображения
+            cv2.imshow('MediaPipe Hands', image)
+            if cv2.waitKey(5) & 0xFF == 27:
+                break
+
+        frame_counter += 1 # Увеличиваем счетчик кадров
+
+    cap.release()
+    cv2.destroyAllWindows()
 
 def mouse_movement(hand_detector):
     while True:
