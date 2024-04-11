@@ -15,6 +15,7 @@ class HandDetector():
         self.screen_height = screen_height
         self.x_pixel = 0
         self.y_pixel = 0
+        self.click = False
 
     def find_hands(self, img, draw=True):
         results = self.hands.process(img)
@@ -53,7 +54,7 @@ class HandDetector():
                 x = 1 - x
                 self.x_pixel = x * self.screen_width
                 self.y_pixel = y * self.screen_height
-                print(f'управление мышкой')
+                #print(f'управление мышкой')
                 #print((right_thumb_tip, rightindex_finger_tip))
                 #print(self.find_midpoint(right_thumb_tip, rightindex_finger_tip))
         if len(left_hand_coords) > 0:
@@ -61,8 +62,9 @@ class HandDetector():
             leftindex_finger_tip = [coord for coord in left_hand_coords if coord[0] == 'INDEX_FINGER_TIP'][0][1:]
             left_distance = self.find_distance(left_thumb_tip, leftindex_finger_tip)
             if left_distance <= 0.045:
-                print('click')
-                #pyautogui.click()
+                self.click = True
+            else:
+                self.click = False
             
 def process_frame(hand_detector, cap):
     while cap.isOpened():
@@ -79,32 +81,44 @@ def process_frame(hand_detector, cap):
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
         results = hand_detector.find_hands(image)
-        #image = hand_detector.draw_landmarks(image, results)
+        image = hand_detector.draw_landmarks(image, results)
 
         # Отображение изображения
-        #cv2.imshow('MediaPipe Hands', image)
+        cv2.imshow('MediaPipe Hands', image)
         if cv2.waitKey(5) & 0xFF == 27:
             break
 
-def mouse_control(hand_detector):
+def mouse_movement(hand_detector):
     while True:
-        print(hand_detector.x_pixel)
         pyautogui.moveTo(hand_detector.x_pixel, hand_detector.y_pixel)
-    
+
+
+def mouse_click(hand_detector):
+    while True:
+        if hand_detector.click:
+            pyautogui.mouseDown()
+            print('click')
+        else:
+            pyautogui.mouseUp()
+            print('unclick')
+
 
 # Захват видео с камеры
 cap = cv2.VideoCapture(0)
 hand_detector = HandDetector()
 pyautogui.FAILSAFE = False
-
+lock = threading.Lock()
 frame_thread = threading.Thread(target=process_frame, args=(hand_detector, cap,))
-mouse_thread = threading.Thread(target=mouse_control, args=(hand_detector,))
+mouse_move_thread = threading.Thread(target=mouse_movement, args=(hand_detector,))
+mouse_click_thread = threading.Thread(target=mouse_click, args=(hand_detector,))
 
 frame_thread.start()
-mouse_thread.start()
+mouse_move_thread.start()
+mouse_click_thread.start()
 
 frame_thread.join()
-mouse_thread.join()
+mouse_move_thread.join()
+mouse_click_thread.join()
 
 cap.release()
 cv2.destroyAllWindows()
