@@ -57,13 +57,13 @@ class HandDetector():
     def find_gesture(self, left_hand_coords, right_hand_coords):
         if len(right_hand_coords) > 0:
             right_size = self.calculate_hand_size(right_hand_coords)
-            right__trashhold = right_size * 0.25
+            right_trashhold = right_size * 0.25
 
             right_thumb_tip = [coord for coord in right_hand_coords if coord[0] == 'THUMB_TIP'][0][1:]
             right_index_finger_tip = [coord for coord in right_hand_coords if coord[0] == 'INDEX_FINGER_TIP'][0][1:]
 
             right_distance = self.find_distance(right_thumb_tip, right_index_finger_tip)
-            if right_distance <= right__trashhold:
+            if right_distance <= right_trashhold:
                 x = right_index_finger_tip[0]
                 y = right_index_finger_tip[1]
                 x = 1 - x
@@ -71,17 +71,18 @@ class HandDetector():
                 self.y_pixel = y * self.screen_height
                 #print(f'управление мышкой')
                 #print((right_thumb_tip, rightindex_finger_tip))
-                #print(self.find_midpoint(right_thumb_tip, rightindex_finger_tip))
 
         if len(left_hand_coords) > 0:
             left_size = self.calculate_hand_size(left_hand_coords)
-            left__trashhold = left_size * 0.25
+            left_trashhold = left_size * 0.25
 
             left_thumb_tip = [coord for coord in left_hand_coords if coord[0] == 'THUMB_TIP'][0][1:]
             leftindex_finger_tip = [coord for coord in left_hand_coords if coord[0] == 'INDEX_FINGER_TIP'][0][1:]
 
             left_distance = self.find_distance(left_thumb_tip, leftindex_finger_tip)
-            if left_distance <= left__trashhold:
+            #print(f'{left_distance} дистанция')
+            #print(f'{left_trashhold} трешхолд')
+            if left_distance <= left_trashhold:
                 self.click = True
             else:
                 self.click = False
@@ -104,10 +105,10 @@ def process_frame(hand_detector, cap):
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
             results = hand_detector.find_hands(image)
-            image = hand_detector.draw_landmarks(image, results)
+            #image = hand_detector.draw_landmarks(image, results)
 
             # Отображение изображения
-            cv2.imshow('MediaPipe Hands', image)
+            #cv2.imshow('MediaPipe Hands', image)
             if cv2.waitKey(5) & 0xFF == 27:
                 break
 
@@ -116,19 +117,34 @@ def process_frame(hand_detector, cap):
     cap.release()
     cv2.destroyAllWindows()
 
+
 def mouse_movement(hand_detector):
+    previous_x_pixel = -1
+    previous_y_pixel = -1
     while True:
+        if previous_x_pixel == hand_detector.x_pixel and previous_y_pixel == hand_detector.y_pixel:
+            continue
         pyautogui.moveTo(hand_detector.x_pixel, hand_detector.y_pixel)
+        previous_x_pixel = hand_detector.x_pixel
+        previous_y_pixel = hand_detector.y_pixel
 
 
 def mouse_click(hand_detector):
+    previous_click_state = False # Инициализация предыдущего состояния
     while True:
-        if hand_detector.click:
-            pyautogui.mouseDown()
+        current_click_state = hand_detector.click # Получение текущего состояния
+        if current_click_state and not previous_click_state:
+            # Если текущее состояние True, а предыдущее False, то это означает, что мышь должна быть нажата
+            with lock:
+                pyautogui.mouseDown()
             #print('click')
-        else:
-            pyautogui.mouseUp()
+        elif not current_click_state and previous_click_state:
+            # Если текущее состояние False, а предыдущее True, то это означает, что мышь должна быть отпущена
+            with lock:
+                pyautogui.mouseUp()
             #print('unclick')
+        previous_click_state = current_click_state # Обновление предыдущего состояния
+        
 
 
 # Захват видео с камеры
