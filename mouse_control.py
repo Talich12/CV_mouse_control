@@ -107,7 +107,7 @@ def process_frame(hand_detector, cap):
             results = hand_detector.find_hands(image)
             #image = hand_detector.draw_landmarks(image, results)
 
-            # Отображение изображения
+            ## Отображение изображения   
             #cv2.imshow('MediaPipe Hands', image)
             if cv2.waitKey(5) & 0xFF == 27:
                 break
